@@ -269,16 +269,29 @@ class ParticleOperator:
         af_c_indices, af_a_indices = [], []
         b_c_indices, b_a_indices = [], []
 
+        swap_parity = 0
+        higher_than_f_c_so_far = 0
+        higher_than_f_a_so_far = 0
+        higher_than_af_c_so_far = 0
         for op in self.split():
             if op.has_fermions:
                 if op.creation:
                     f_c_indices.append(op.mode)
+                    swap_parity += higher_than_f_c_so_far
                 else:
+                    higher_than_f_c_so_far += 1
                     f_a_indices.append(op.mode)
+                    swap_parity += higher_than_f_a_so_far
             elif op.has_antifermions:
                 if op.creation:
+                    higher_than_f_c_so_far += 1
+                    higher_than_f_a_so_far += 1
                     af_c_indices.append(op.mode)
+                    swap_parity += higher_than_af_c_so_far
                 else:
+                    higher_than_f_c_so_far += 1
+                    higher_than_f_a_so_far += 1
+                    higher_than_af_c_so_far += 1
                     af_a_indices.append(op.mode)
             elif op.has_bosons:
                 if op.creation:
@@ -293,12 +306,12 @@ class ParticleOperator:
             b_c_indices,
             b_a_indices,
         ]
-        return indices_by_type
+        return indices_by_type, (-1) ** swap_parity
 
     def _order_indices(self):
-        split_terms = self.preprocess_indices()
+        split_terms, extra_sign = self.preprocess_indices()
         ordered, num_swaps = self.swap(split_terms)
-        coeff = (-1) ** num_swaps
+        coeff = extra_sign * (-1) ** num_swaps
 
         ordered_string = ""
         for i, indices in enumerate(ordered):
